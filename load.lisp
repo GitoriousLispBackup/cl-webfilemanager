@@ -2,4 +2,4 @@
 (ql:quickload "hunchentoot")
 (ql:quickload "cl-who")
 
-(load "server.lisp")
+(load "cl-webfilemanager.lisp")
