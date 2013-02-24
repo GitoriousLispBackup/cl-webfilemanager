@@ -2,16 +2,18 @@
 (ql:quickload "hunchentoot")
 (ql:quickload "cl-who")
 
-(load "server.lisp")
+(load "cl-webfilemanager.lisp")
+
+
 
 
 (defun build-lisp-image (dump-name)
-  #+:CLISP (ext:saveinitmem dump-name :init-function (lambda () (my-server:start-server) (ext:quit)) :executable t)
-  #+:SBCL (sb-ext:save-lisp-and-die dump-name :toplevel (lambda () (my-server:start-server) (sb-ext:exit)) :executable t)
-  #+:CMU (ext:save-lisp dump-name :init-function (lambda () (my-server:start-server) (ext:quit)) :executable t)
-  #+:CCL (ccl:save-application dump-name :toplevel-function (lambda () (my-server:start-server) (ccl:quit))
+  #+:CLISP (ext:saveinitmem dump-name :init-function (lambda () (cl-webfilemanager:start-server-loop) (ext:quit)) :executable t)
+  #+:SBCL (sb-ext:save-lisp-and-die dump-name :toplevel (lambda () (cl-webfilemanager:start-server-loop) (sb-ext:exit)) :executable t)
+  #+:CMU (ext:save-lisp dump-name :init-function (lambda () (cl-webfilemanager:start-server-loop) (ext:quit)) :executable t)
+  #+:CCL (ccl:save-application dump-name :toplevel-function (lambda () (cl-webfilemanager:start-server-loop) (ccl:quit))
                                :prepend-kernel t)
-  #+:ECL (c:build-program dump-name :epilogue-code '(my-server:start-server)))
+  #+:ECL (c:build-program dump-name :epilogue-code '(cl-webfilemanager:start-server-loop)))
 
 
-(build-lisp-image "my-server-test")
+(build-lisp-image "cl-webfilemanager")
