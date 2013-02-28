@@ -29,9 +29,9 @@
            :method :post
 	   (:input :type :hidden :name "identified" :value identified)
 	   (:p "Login : "
-	       (:input :type :text :id "login" :name "login")) ; :value login))
+	       (:input :type :text :id "login" :name "login"))
 	   (:p "Mot de passe : "
-	       (:input :type :password :name "password")) ;; :value password))
+	       (:input :type :password :name "password"))
 	   (:p (:input :type :submit :value "Submit"))))
       (:p "Login : " (str login))
       (:p "Mot de passe : " (str password))
@@ -54,20 +54,20 @@
       (:input :type :checkbox :name "selected-file" :value dir
               :checked (member (namestring dir) selected-file :test #'equal))
       (:button :type :submit :name "action" :class "btnblue btn"
-               :value (str (format nil "~S" `(cd ,dir)))
+               :value (str (to-string `(cd ,dir)))
                :onmouseover "this.className=\"btnblue btn btnhov\";"
                :onmouseout "this.className=\"btnblue btn\";"
-               (str dirstr)))))
+               (str (limit-char dirstr))))))
 
 (defun make-file-button (file selected-file)
   (with-html-output-to-string (*standard-output*)
     (:input :type :checkbox :name "selected-file" :value file
             :checked (member (namestring file) selected-file :test #'equal))
     (:button :type :submit :name "action" :class "btn"
-             :value (str (format nil "~S" `(open ,file)))
+             :value (str (to-string `(open ,file)))
              :onmouseover "this.className=\"btn btnhov\";"
              :onmouseout "this.className=\"btn\";"
-             (str (pathname-name-type file)))))
+             (str (pathname-name-type file t)))))
 
 
 (defun generic-build-list (list fun-button selected-file)
@@ -104,42 +104,40 @@
   `(progn
      (push ',name *action-list*)
      (defun ,name ,(append '(param) args)
+       (declare (ignorable param))
        ,@body)))
 
 (define-action cd (pathname)
   (setf (nth (param-current-tab param) (param-tab-list param)) pathname))
-  ;;(setf (tab-dir-dirname (current-tab)) pathname))
-  ;;(declare (ignore pathname)))
 
+(define-action clean-auth ()
+  (setf *auth-admin* (list (param-identified param)) *auth-guest* nil))
 
+(define-action deconnexion ()
+  (remove-in-auth-admin (param-identified param))
+  (setf (param-identified param) "false"))
 
 
 (defun send-identified (identified action selected-file tab-list current-tab)
   (let ((tab-list (read-from-string tab-list)))
     (labels ((do-default-action (action)
-               (let ((cmd (read-from-string action)))
-                 (when (member (first cmd) *action-list*)
-                   (let ((param (make-param :identified identified
-                                            :action action
-                                            :selected-file selected-file
-                                            :tab-list tab-list
-                                            :current-tab current-tab)))
-                     (apply (first cmd) param (rest cmd))
-                     (setf identified (param-identified param)
-                           action (param-action param)
-                           selected-file (param-selected-file param)
-                           tab-list (param-tab-list param)
-                           current-tab (param-current-tab param)))))))
-      (when action
-        (cond ((string= action "Deconnexion")
-               (remove-in-auth-admin identified)
-               (setf identified "false")
-               (return-from send-identified (send-login-page "" "" "false")))
-              ((string= action "Clean auth")
-               (setf *auth-admin* nil *auth-guest* nil))
-              ;;((string= action "Home")
-              ;; (setf (tab-dir-dirname (current-tab)) (user-homedir-pathname)))
-              (t (do-default-action action))))
+               (when action
+                 (let ((cmd (read-from-string action)))
+                   (when (member (first cmd) *action-list*)
+                     (let ((param (make-param :identified identified
+                                              :action action
+                                              :selected-file selected-file
+                                              :tab-list tab-list
+                                              :current-tab current-tab)))
+                       (apply (first cmd) param (rest cmd))
+                       (setf identified (param-identified param)
+                             action (param-action param)
+                             selected-file (param-selected-file param)
+                             tab-list (param-tab-list param)
+                             current-tab (param-current-tab param))))))))
+      (do-default-action action)
+      (unless (member identified *auth-admin* :test #'string=)
+        (return-from send-identified (send-login-page "" "" "false")))
       (let ((tab-pathname (nth current-tab tab-list)))
         (multiple-value-bind (dirs files)
             (get-directory-list tab-pathname) ;; TODO showhidden
@@ -148,12 +146,11 @@
              (:head (:title "TODO")
                     (:style (str (css-style))))
              (:body
-              ;;:style "margin: 20px"
               (:p (:form :name "plop"
                          :method :post
                          :action "/"
                          (:input :type :hidden :name "identified" :value identified)
-                         (:input :type :hidden :name "tab-list" :value (format nil "~S" tab-list))
+                         (:input :type :hidden :name "tab-list" :value (to-string tab-list))
                          (:input :type :hidden :name "current-tab" :value current-tab)
                          (str (build-dir-path tab-pathname selected-file))
                          (:hr)
@@ -161,12 +158,15 @@
                          (:hr)
                          (str (build-file-list files selected-file))
                          (:hr)
-                         (:p (:input :type :submit :name "action" :value "Home")
-                             (:input :type :submit :name "action" :value "Clean auth")
-                             (:input :type :submit :name "action" :value "Deconnexion"))
+                         (:p (:button :name "action" :value (str (to-string `(cd ,(user-homedir-pathname))))
+                                      "Home")
+                             (:button :name "action" :value (str (to-string '(clean-auth)))
+                                      "Clean Auth")
+                             (:button :name "action" :value (str (to-string '(deconnexion)))
+                                      "Deconnexion"))
                          (:p (:input :type :submit :value "Submit"))
                          (:p "Identifié : " (str identified))
-                         (:p "Tab list : " (str (format nil "~S" tab-list)))
+                         (:p "Tab list : " (str (to-string tab-list)))
                          (:p "Current tab : " (str current-tab))
                          (:p "Selected-File : " (str selected-file))
                          (:p "Action : " (str action))
@@ -224,7 +224,7 @@
              (send-identified-guest identified selected-file action)))
     (when (and (string-equal login "phil") (string-equal password "toto"))
       (setf identified (add-in-auth-admin login password)
-            tab-list (format nil "~S" (list (user-homedir-pathname)))
+            tab-list (to-string (list (user-homedir-pathname)))
             current-tab 0
             login "???"
             password "???"))

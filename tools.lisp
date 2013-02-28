@@ -26,19 +26,21 @@
     (dotimes (i n)
       (princ #\space str))))
 
-(defun limit-char (string &optional (limit 20))
+(defun limit-char (string &optional (limit 13))
   (let ((len (length string)))
     (if (> len limit)
-        (subseq string 0 limit)
-        (format nil "~A~A" string (spaces (- limit len))))))
+        (format nil "~A___" (subseq string 0 limit))
+        string)))
 
 
 (defun directory-to-pathname (dir)
   (make-pathname :directory dir))
 
-(defun pathname-name-type (pathname)
+(defun pathname-name-type (pathname &optional limit)
   (format nil "~A~A"
-          (pathname-name pathname)
+          (if limit
+              (limit-char (pathname-name pathname))
+              (pathname-name pathname))
           (if (pathname-type pathname)
               (format nil ".~A" (pathname-type pathname))
               "")))
@@ -98,3 +100,7 @@
           (when (or show-hidden (and (not (is-hidden-file item)) (not (is-hidden-directory item))))
             (push item acc-file))))
     (values (sort-file acc-dir) (sort-file acc-file))))
+
+
+(defun to-string (list)
+  (format nil "~S" list))
