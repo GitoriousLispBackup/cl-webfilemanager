@@ -36,11 +36,9 @@
 (defun directory-to-pathname (dir)
   (make-pathname :directory dir))
 
-(defun pathname-name-type (pathname &optional limit)
+(defun pathname-name-type (pathname)
   (format nil "~A~A"
-          (if limit
-              (limit-char (pathname-name pathname))
-              (pathname-name pathname))
+          (pathname-name pathname)
           (if (pathname-type pathname)
               (format nil ".~A" (pathname-type pathname))
               "")))

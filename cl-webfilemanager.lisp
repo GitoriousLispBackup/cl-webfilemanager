@@ -57,26 +57,29 @@
                :value (str (to-string `(cd ,dir)))
                :onmouseover "this.className=\"btnblue btn btnhov\";"
                :onmouseout "this.className=\"btnblue btn\";"
-               (str (limit-char dirstr))))))
+               (str dirstr)))))
 
 (defun make-file-button (file selected-file)
   (with-html-output-to-string (*standard-output*)
     (:input :type :checkbox :name "selected-file" :value file
             :checked (member (namestring file) selected-file :test #'equal))
     (:button :type :submit :name "action" :class "btn"
+             :value (str (to-string `(options ,file)))
+             :onmouseover "this.className=\"btn btnhov\";"
+             :onmouseout "this.className=\"btn\";"
+             "o")
+    (:button :type :submit :name "action" :class "btn"
              :value (str (to-string `(open ,file)))
              :onmouseover "this.className=\"btn btnhov\";"
              :onmouseout "this.className=\"btn\";"
-             (str (pathname-name-type file t)))))
-
+             (str (pathname-name-type file)))))
 
 (defun generic-build-list (list fun-button selected-file)
   (with-html-output-to-string (*standard-output*)
-    (:table :style "width : 100%; table-layout: fixed;"
-     (dolist (grp (group-by list *num-columns*))
-       do (htm (:tr
-                (dolist (dir grp)
-                  (htm (:td (str (funcall fun-button dir selected-file)))))))))))
+    (dolist (item list)
+      (htm (str (funcall fun-button item selected-file))
+           (:br)))))
+
 
 
 (defun build-dir-list (dirs selected-file)
@@ -96,45 +99,34 @@
        (str (make-dir-button dir selected-file)) "/"))))
 
 
-(defparameter *action-list* nil)
-
-(defstruct param identified action selected-file tab-list current-tab)
-
-(defmacro define-action (name args &body body)
-  `(progn
-     (push ',name *action-list*)
-     (defun ,name ,(append '(param) args)
-       (declare (ignorable param))
-       ,@body)))
-
-(define-action cd (pathname)
-  (setf (nth (param-current-tab param) (param-tab-list param)) pathname))
-
-(define-action clean-auth ()
-  (setf *auth-admin* (list (param-identified param)) *auth-guest* nil))
-
-(define-action deconnexion ()
-  (remove-in-auth-admin (param-identified param))
-  (setf (param-identified param) "false"))
+(defun control-button ()
+  (with-html-output-to-string (*standard-output*)
+    (:p (:button :name "action" :value (str (to-string `(cd ,(user-homedir-pathname))))
+                 "Home")
+        (:button :name "action" :value (str (to-string '(clean-auth)))
+                 "Clean Auth")
+        (:button :name "action" :value (str (to-string '(deconnexion)))
+                 "Deconnexion"))))
 
 
 (defun send-identified (identified action selected-file tab-list current-tab)
-  (let ((tab-list (read-from-string tab-list)))
+  (let* ((tab-list (read-from-string tab-list))
+         (param (make-param :identified identified
+                            :action action
+                            :selected-file selected-file
+                            :tab-list tab-list
+                            :current-tab current-tab
+                            :additional-html nil)))
     (labels ((do-default-action (action)
                (when action
                  (let ((cmd (read-from-string action)))
                    (when (member (first cmd) *action-list*)
-                     (let ((param (make-param :identified identified
-                                              :action action
-                                              :selected-file selected-file
-                                              :tab-list tab-list
-                                              :current-tab current-tab)))
-                       (apply (first cmd) param (rest cmd))
-                       (setf identified (param-identified param)
-                             action (param-action param)
-                             selected-file (param-selected-file param)
-                             tab-list (param-tab-list param)
-                             current-tab (param-current-tab param))))))))
+                     (apply (first cmd) param (rest cmd))
+                     (setf identified (param-identified param)
+                           action (param-action param)
+                           selected-file (param-selected-file param)
+                           tab-list (param-tab-list param)
+                           current-tab (param-current-tab param)))))))
       (do-default-action action)
       (unless (member identified *auth-admin* :test #'string=)
         (return-from send-identified (send-login-page "" "" "false")))
@@ -146,25 +138,22 @@
              (:head (:title "TODO")
                     (:style (str (css-style))))
              (:body
-              (:p (:form :name "plop"
-                         :method :post
+              (:p (str (param-additional-html param)))
+              (:p (:form :method :post
                          :action "/"
                          (:input :type :hidden :name "identified" :value identified)
                          (:input :type :hidden :name "tab-list" :value (to-string tab-list))
                          (:input :type :hidden :name "current-tab" :value current-tab)
+                         (str (control-button))
+                         (:hr)
                          (str (build-dir-path tab-pathname selected-file))
                          (:hr)
                          (str (build-dir-list dirs selected-file))
                          (:hr)
                          (str (build-file-list files selected-file))
                          (:hr)
-                         (:p (:button :name "action" :value (str (to-string `(cd ,(user-homedir-pathname))))
-                                      "Home")
-                             (:button :name "action" :value (str (to-string '(clean-auth)))
-                                      "Clean Auth")
-                             (:button :name "action" :value (str (to-string '(deconnexion)))
-                                      "Deconnexion"))
-                         (:p (:input :type :submit :value "Submit"))
+                         (str (control-button))
+                         (:hr)
                          (:p "Identifié : " (str identified))
                          (:p "Tab list : " (str (to-string tab-list)))
                          (:p "Current tab : " (str current-tab))

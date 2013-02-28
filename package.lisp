@@ -18,5 +18,8 @@
 (defparameter *auth-admin* ())
 (defparameter *auth-guest* ())
 
+(defparameter *action-list* nil)
+(defparameter *action-guest-list* nil)
 
-(defparameter *num-columns* 4)
+(defstruct param identified action selected-file tab-list current-tab additional-html)
+

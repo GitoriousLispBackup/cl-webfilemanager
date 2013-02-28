@@ -13,6 +13,8 @@
   :components ((:file "package")
                (:file "tools"
                       :depends-on ("package"))
+               (:file "actions"
+                      :depends-on ("package"))
                (:file "cl-webfilemanager"
                       :depends-on ("package" "tools"))))
 
