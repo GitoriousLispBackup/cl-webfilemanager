@@ -1,136 +1,5 @@
-(in-package :cl-user)
-
-(defpackage :cl-webfilemanager
-  (:use :common-lisp :hunchentoot :cl-who :cl-fad)
-  (:export :start-server
-           :start-server-loop))
-
 (in-package :cl-webfilemanager)
 
-(setf *show-lisp-errors-p* t)
-(defparameter *port* 4343)
-
-
-(defparameter *auth-admin* ())
-(defparameter *auth-guest* ())
-
-
-(defstruct tab-dir dirname dirs files show-hidden selected-file)
-
-(defparameter *tab-list* (list (make-tab-dir :dirname (user-homedir-pathname) :selected-file nil
-                                             :dirs nil :files nil
-                                             :show-hidden nil)))
-
-(defparameter *current-tab* 0)
-
-(defparameter *num-columns* 1)
-
-
-(defun split-string (string &optional (separator #\Space))
-  "Return a list from a string splited at each separators"
-  (loop for i = 0 then (1+ j)
-     as j = (position separator string :start i)
-     as sub = (subseq string i j)
-     unless (string= sub "") collect sub
-     while j))
-
-
-(defun create-auth-md5 (login password)
-  (remove #\space (format nil "~A"
-                          (md5:md5sum-sequence
-                           (format nil "~A ~A ~A" login password (random 100000))))))
-
-(defun remove-in-auth-admin (identified)
-  (setf *auth-admin* (remove identified *auth-admin* :test #'string=)))
-
-(defun remove-in-auth-guest (identified)
-  (setf *auth-guest* (remove identified *auth-guest* :test #'string=)))
-
-
-(defun add-in-auth-admin (login password)
-  (let ((auth-md5 (create-auth-md5 login password)))
-    (pushnew auth-md5 *auth-admin*)
-    auth-md5))
-
-(defun add-in-auth-guest (login password)
-  (let ((auth-md5 (create-auth-md5 login password)))
-    (pushnew auth-md5 *auth-guest*)
-    auth-md5))
-
-
-(defun is-hidden-file (file)
-  (eql #\. (char (pathname-name file) 0)))
-
-(defun is-hidden-directory (dirname)
-  (dolist (dir (rest (pathname-directory dirname)))
-    (when (eql #\. (char dir 0))
-      (return-from is-hidden-directory t))))
-
-(defun sort-file (filelist)
-  (sort filelist
-        (lambda (x y)
-          (string< (string-upcase (namestring x)) (string-upcase (namestring y))))))
-
-;;(defun sort-file (filelist)
-;;  (sort filelist
-;;        (lambda (x y)
-;;          (string< (string-upcase x) (string-upcase y)))))
-
-
-(defun get-directory-list (dirname &optional show-hidden)
-  (let ((acc-file nil)
-        (acc-dir nil))
-    (dolist (item (list-directory dirname))
-      (if (directory-pathname-p item)
-          (when (or show-hidden (not (is-hidden-directory item)))
-            (push item acc-dir))
-          (when (or show-hidden (and (not (is-hidden-file item)) (not (is-hidden-directory item))))
-            (push item acc-file))))
-    (values (sort-file acc-dir) (sort-file acc-file))))
-
-;;(defun get-directory-list (dirname &optional show-hidden)
-;;  (let ((acc-file nil)
-;;        (acc-dir nil))
-;;    (dolist (item (list-directory dirname))
-;;      (if (directory-pathname-p item)
-;;          (when (or show-hidden (not (is-hidden-directory item)))
-;;            (push (first (last (pathname-directory item))) acc-dir))
-;;          (when (or show-hidden (and (not (is-hidden-file item)) (not (is-hidden-directory item))))
-;;            (push (format nil "~A~A" (pathname-name item)
-;;                          (if (pathname-type item)
-;;                              (format nil ".~A" (pathname-type item))
-;;                              ""))
-;;                  acc-file))))
-;;    (values (sort-file acc-dir) (sort-file acc-file))))
-
-
-
-
-(defun update-tab-content (tab)
-  (multiple-value-bind (dirs files)
-      (get-directory-list (tab-dir-dirname tab) (tab-dir-show-hidden tab))
-    (setf (tab-dir-dirs tab) dirs
-          (tab-dir-files tab) files)))
-
-
-(defun current-tab ()
-  (nth *current-tab* *tab-list*))
-
-;;(defun css-style ()
-;;  "h1 { color: #FF0000; text-align: center; }
-;;   input.btn {   color:#050;   font: bold small 'trebuchet ms',helvetica,sans-serif; }
-;;   input.btn2 {   color:#050;   font: bold 84% 'trebuchet ms',helvetica,sans-serif;
-;;                  background-color:#fed;   border:1px solid;   border-color: #696 #363 #363 #696; }
-;;   input.btnhov {   border-color: #c63 #930 #930 #c63; }
-;;")
-
-
-;;(defun css-style ()
-;;  "h1 { color: #FF0000; text-align: center; }
-;;   input.btn {   color:blue;   font: bold 84% 'trebuchet ms',helvetica,sans-serif;
-;;                 background-color:white;   border:1px solid;   border-color: white white white white; }
-;;   input.btnhov {   border-color: black black black; }
-;;")
 
 (defun css-style ()
   "h1 { color: #FF0000; text-align: center; }
@@ -138,6 +7,11 @@
    input.btn {   background-color:white; font: normal 100% sans-serif;  border:1px solid;
                  border-color: white white white white; }
    input.btnhov {   border-color: black black black; }
+
+   button.btnblue { color: blue; }
+   button.btn {   background-color:white; font: normal 100% sans-serif;  border:1px solid;
+                 border-color: white white white white; }
+   button.btnhov {   border-color: black black black; }
 ")
 
 
@@ -173,138 +47,131 @@
             :onmouseout "this.className=\"btn\";")))
 
 
-(defun group-by (list n)
-  (let ((acc nil) (subacc nil) (i 0))
-    (dolist (l list)
-      (incf i)
-      (push l subacc)
-      (when (zerop (mod i n))
-        (push (nreverse subacc) acc)
-        (setf subacc nil)))
-    (when subacc
-      (push (nreverse subacc) acc))
-    (nreverse acc)))
+(defun make-dir-button (dir selected-file)
+  (let* ((dirname (first (last (pathname-directory dir))))
+         (dirstr (if (equal dirname :absolute) "Root" dirname)))
+    (with-html-output-to-string (*standard-output*)
+      (:input :type :checkbox :name "selected-file" :value dir
+              :checked (member (namestring dir) selected-file :test #'equal))
+      (:button :type :submit :name "action" :class "btnblue btn"
+               :value (str (format nil "~S" `(cd ,dir)))
+               :onmouseover "this.className=\"btnblue btn btnhov\";"
+               :onmouseout "this.className=\"btnblue btn\";"
+               (str dirstr)))))
 
-(defun spaces (n)
-  (with-output-to-string (str)
-    (dotimes (i n)
-      (princ #\space str))))
-
-(defun limit-char (string &optional (limit 20))
-  (let ((len (length string)))
-    (if (> len limit)
-        (subseq string 0 limit)
-        (format nil "~A~A" string (spaces (- limit len))))))
-
-
-(defun make-dir-button (dir)
+(defun make-file-button (file selected-file)
   (with-html-output-to-string (*standard-output*)
-    (:input :type :submit :name "action" :class "btnblue btn"
-            :value (namestring dir) :text "plop"
-            :onmouseover "this.className=\"btnblue btn btnhov\";"
-            :onmouseout "this.className=\"btnblue btn\";")))
+    (:input :type :checkbox :name "selected-file" :value file
+            :checked (member (namestring file) selected-file :test #'equal))
+    (:button :type :submit :name "action" :class "btn"
+             :value (str (format nil "~S" `(open ,file)))
+             :onmouseover "this.className=\"btn btnhov\";"
+             :onmouseout "this.className=\"btn\";"
+             (str (pathname-name-type file)))))
 
-(defun make-file-button (file)
+
+(defun generic-build-list (list fun-button selected-file)
   (with-html-output-to-string (*standard-output*)
-    (:input :type :submit :name "action" :class "btn"
-            :value (namestring file)
-            :onmouseover "this.className=\"btn btnhov\";"
-            :onmouseout "this.className=\"btn\";")))
-
-
-(defun generic-build-list (list fun-button)
-  (with-html-output-to-string (*standard-output*)
-    (:table
+    (:table :style "width : 100%; table-layout: fixed;"
      (dolist (grp (group-by list *num-columns*))
        do (htm (:tr
                 (dolist (dir grp)
-                  (htm (:td (str (funcall fun-button dir)))))))))))
+                  (htm (:td (str (funcall fun-button dir selected-file)))))))))))
 
 
-(defun build-dir-list ()
-  (generic-build-list (tab-dir-dirs (current-tab)) #'make-dir-button))
+(defun build-dir-list (dirs selected-file)
+  (generic-build-list dirs #'make-dir-button selected-file))
 
 
-(defun build-file-list ()
-  (generic-build-list (tab-dir-files (current-tab)) #'make-file-button))
-
-;;(defun build-file-list ()
-;;  (let ((tab (current-tab)))
-;;    ;;(multiple-value-bind (dirs files)
-;;    ;;    (get-directory-list (tab-dir-dirname tab))
-;;    (with-html-output-to-string (*standard-output*)
-;;      (:table
-;;       (dolist (grp (group-by (tab-dir-dirs tab) *num-columns*))
-;;         do (htm (:tr
-;;                  (dolist (dir grp)
-;;                    (htm (:td (str (make-dir-button dir)))))))))
-;;      (:table
-;;       (dolist (grp (group-by (tab-dir-files tab) *num-columns*))
-;;         do (htm (:tr
-;;                  (dolist (file grp)
-;;                    (htm (:td (str (make-file-button file))))))))))))
+(defun build-file-list (files selected-file)
+  (generic-build-list files #'make-file-button selected-file))
 
 
 
-(defun build-dir-path ()
-  (let ((tab (current-tab)))
-    (with-html-output-to-string (*standard-output*)
-      "/"
-      (dolist (dir (rest (pathname-directory (tab-dir-dirname tab))))
-        (htm
-         (str (make-dir-button dir)) "/")))))
+(defun build-dir-path (tab-pathname selected-file)
+  (with-html-output-to-string (*standard-output*)
+    "/"
+    (dolist (dir (extract-all-pathname tab-pathname))
+      (htm
+       (str (make-dir-button dir selected-file)) "/"))))
 
 
-(defun send-identified (identified action)
-  (when action
-    (when (string= action "Deconnexion")
-      (remove-in-auth-admin identified)
-      (setf identified "false")
-      (return-from send-identified (send-login-page "" "" "false")))
-    (when (string= action "Clean auth")
-      (setf *auth-admin* nil *auth-guest* nil))
-    (when (string= action "Home")
-      (setf (tab-dir-dirname (current-tab)) (user-homedir-pathname)))
-    (when (member (pathname-as-directory action) (tab-dir-dirs (current-tab)) :test #'equal)
-      (setf (tab-dir-dirname (current-tab)) action)
-      ;;(pathname-as-directory (format nil "~A/~A" (tab-dir-dirname (current-tab)) action))))
-      )
-    (let* ((dir (pathname-directory (tab-dir-dirname (current-tab))))
-           (pos (position action dir :test #'string=)))
-      (when pos
-        (setf (tab-dir-dirname (current-tab)) (make-pathname :directory (subseq dir 0 (1+ pos)))))))
-  (update-tab-content (current-tab))
-  (with-html-output-to-string (*standard-output* nil :prologue t)
-    (:html
-     (:head (:title "TODO")
-            (:style (str (css-style))))
-     (:body
-      ;;:style "margin: 20px"
-      (:p (:form :name "plop"
-                 :method :post
-                 :action "/"
-                 (:input :type :hidden :name "identified" :value identified)
-                 (str (build-dir-path))
-                 (:hr)
-                 (str (build-dir-list))
-                 (:hr)
-                 (str (build-file-list))
-                 (:hr)
-                 (:p (:input :type :submit :name "action" :value "Home")
-                     (:input :type :submit :name "action" :value "Clean auth")
-                     (:input :type :submit :name "action" :value "Deconnexion"))
-                 ;;(:p (:input :type :submit :name "action" :class "btn" :value "Lance") "&nbsp;"
-                 ;;    (:input :type :submit :name "action" :class "btn" :value "Plop") "&nbsp;"
-                 ;;    (:input :type :submit :name "action" :class "btn" :value "Paf"
-                 ;;            :onmouseover "this.className=\"btn btnhov\";"
-                 ;;            :onmouseout "this.className=\"btn\";"))
-                 ;;(:p (str (button-in "Pif")) (str (button-in "Plaf")) (str (button-in "Plouf")))
-                 (:p (:input :type :submit :value "Submit"))
-                 (:p "Identifié : " (str identified))
-                 ;;(:p "Select-salle : " (str select-salle))
-                 (:p "Action : " (str action))
-                 (:p "Auth admin : " (str *auth-admin*))
-                 (:p "Auth guest : " (str *auth-guest*))))))))
+(defparameter *action-list* nil)
+
+(defstruct param identified action selected-file tab-list current-tab)
+
+(defmacro define-action (name args &body body)
+  `(progn
+     (push ',name *action-list*)
+     (defun ,name ,(append '(param) args)
+       ,@body)))
+
+(define-action cd (pathname)
+  (setf (nth (param-current-tab param) (param-tab-list param)) pathname))
+  ;;(setf (tab-dir-dirname (current-tab)) pathname))
+  ;;(declare (ignore pathname)))
+
+
+
+
+(defun send-identified (identified action selected-file tab-list current-tab)
+  (let ((tab-list (read-from-string tab-list)))
+    (labels ((do-default-action (action)
+               (let ((cmd (read-from-string action)))
+                 (when (member (first cmd) *action-list*)
+                   (let ((param (make-param :identified identified
+                                            :action action
+                                            :selected-file selected-file
+                                            :tab-list tab-list
+                                            :current-tab current-tab)))
+                     (apply (first cmd) param (rest cmd))
+                     (setf identified (param-identified param)
+                           action (param-action param)
+                           selected-file (param-selected-file param)
+                           tab-list (param-tab-list param)
+                           current-tab (param-current-tab param)))))))
+      (when action
+        (cond ((string= action "Deconnexion")
+               (remove-in-auth-admin identified)
+               (setf identified "false")
+               (return-from send-identified (send-login-page "" "" "false")))
+              ((string= action "Clean auth")
+               (setf *auth-admin* nil *auth-guest* nil))
+              ;;((string= action "Home")
+              ;; (setf (tab-dir-dirname (current-tab)) (user-homedir-pathname)))
+              (t (do-default-action action))))
+      (let ((tab-pathname (nth current-tab tab-list)))
+        (multiple-value-bind (dirs files)
+            (get-directory-list tab-pathname) ;; TODO showhidden
+          (with-html-output-to-string (*standard-output* nil :prologue t)
+            (:html
+             (:head (:title "TODO")
+                    (:style (str (css-style))))
+             (:body
+              ;;:style "margin: 20px"
+              (:p (:form :name "plop"
+                         :method :post
+                         :action "/"
+                         (:input :type :hidden :name "identified" :value identified)
+                         (:input :type :hidden :name "tab-list" :value (format nil "~S" tab-list))
+                         (:input :type :hidden :name "current-tab" :value current-tab)
+                         (str (build-dir-path tab-pathname selected-file))
+                         (:hr)
+                         (str (build-dir-list dirs selected-file))
+                         (:hr)
+                         (str (build-file-list files selected-file))
+                         (:hr)
+                         (:p (:input :type :submit :name "action" :value "Home")
+                             (:input :type :submit :name "action" :value "Clean auth")
+                             (:input :type :submit :name "action" :value "Deconnexion"))
+                         (:p (:input :type :submit :value "Submit"))
+                         (:p "Identifié : " (str identified))
+                         (:p "Tab list : " (str (format nil "~S" tab-list)))
+                         (:p "Current tab : " (str current-tab))
+                         (:p "Selected-File : " (str selected-file))
+                         (:p "Action : " (str action))
+                         (:p "Auth admin : " (str *auth-admin*))
+                         (:p "Auth guest : " (str *auth-guest*))))))))))))
 
 
 
@@ -344,17 +211,23 @@
      (password :parameter-type 'string)
      (identified :parameter-type 'string)
      (selected-file :parameter-type 'list)
-     (action :parameter-type 'string))
+     (action :parameter-type 'string)
+     (tab-list :parameter-type 'string)
+     (current-tab :parameter-type 'integer))
   (labels ((handle-auth-admin-request ()
              (remove-in-auth-admin identified)
              (setf identified (add-in-auth-admin login password))
-             (send-identified identified action))
+             (send-identified identified action selected-file tab-list current-tab))
            (handle-auth-guest-request ()
              (remove-in-auth-guest identified)
              (setf identified (add-in-auth-guest login password))
              (send-identified-guest identified selected-file action)))
     (when (and (string-equal login "phil") (string-equal password "toto"))
-      (setf identified (add-in-auth-admin login password)))
+      (setf identified (add-in-auth-admin login password)
+            tab-list (format nil "~S" (list (user-homedir-pathname)))
+            current-tab 0
+            login "???"
+            password "???"))
     (when (and (string-equal login "toto") (string-equal password "toto"))
       (setf identified (add-in-auth-guest login password)))
     (cond ((member identified *auth-admin* :test #'string=) (handle-auth-admin-request))

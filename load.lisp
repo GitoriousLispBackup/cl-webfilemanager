@@ -2,4 +2,6 @@
 (ql:quickload "hunchentoot")
 (ql:quickload "cl-who")
 
-(load "cl-webfilemanager.lisp")
+(load "cl-webfilemanager.asd")
+(require :cl-webfilemanager)
+
