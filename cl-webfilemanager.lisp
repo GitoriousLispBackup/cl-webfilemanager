@@ -102,25 +102,40 @@
 (defun control-button ()
   (with-html-output-to-string (*standard-output*)
     (:p (:button :name "action" :value (str (to-string `(cd ,(user-homedir-pathname))))
-                 "Home")
+                 "Home") " "
+        (:button "New tab") " "
+        (:button "Delete tab")
+        (:br)
+        (:button "Delete") " "
+        (:button :name "action" :value (str (to-string '(ask-make-dir))) "Make dir" )
+        (:br)
+        (:button "Copy to selection") " "
+        (:button "Cut to selection") " "
+        (:button "Copy selection") " "
+        (:button "Paste selection") " "
+        (:br)
+        (:button "Clean history") " "
         (:button :name "action" :value (str (to-string '(clean-auth)))
-                 "Clean Auth")
+                 "Clean Auth") " "
         (:button :name "action" :value (str (to-string '(deconnexion)))
                  "Deconnexion"))))
 
 
-(defun send-identified (identified action selected-file tab-list current-tab)
+(defun send-main (type identified action selected-file tab-list current-tab data)
   (let* ((tab-list (read-from-string tab-list))
          (param (make-param :identified identified
                             :action action
                             :selected-file selected-file
                             :tab-list tab-list
                             :current-tab current-tab
-                            :additional-html nil)))
+                            :additional-html nil
+                            :data data)))
     (labels ((do-default-action (action)
                (when action
                  (let ((cmd (read-from-string action)))
-                   (when (member (first cmd) *action-list*)
+                   (when (member (first cmd) (cond ((eql type :admin) *action-list*)
+                                                   ((eql type :guest) *action-guest-list*)
+                                                   (t nil)))
                      (apply (first cmd) param (rest cmd))
                      (setf identified (param-identified param)
                            action (param-action param)
@@ -128,8 +143,9 @@
                            tab-list (param-tab-list param)
                            current-tab (param-current-tab param)))))))
       (do-default-action action)
-      (unless (member identified *auth-admin* :test #'string=)
-        (return-from send-identified (send-login-page "" "" "false")))
+      (unless (or (and (eql type :admin) (member identified *auth-admin* :test #'string=))
+                  (and (eql type :guest) (member identified *auth-guest* :test #'string=)))
+        (return-from send-main (send-login-page "" "" "false")))
       (let ((tab-pathname (nth current-tab tab-list)))
         (multiple-value-bind (dirs files)
             (get-directory-list tab-pathname) ;; TODO showhidden
@@ -159,37 +175,10 @@
                          (:p "Selected-File : " (str selected-file))
                          (:p "Action : " (str action))
                          (:p "Auth admin : " (str *auth-admin*))
-                         (:p "Auth guest : " (str *auth-guest*))))))))))))
+                         (:p "Auth guest : " (str *auth-guest*))
+                         (:p "Data : " (str data))))))))))))
 
 
-
-
-(defun send-identified-guest (identified select-salle action)
-  (let ((str-action "???"))
-    (when (string= action "Deconnexion")
-      (remove-in-auth-guest identified)
-      (setf identified "false")
-      (return-from send-identified-guest (send-login-page "" "" "false")))
-    (with-html-output-to-string (*standard-output* nil :prologue t)
-      (:html
-       (:head (:title "Hello, world!")
-              (:style (str (css-style))))
-       (:body
-        :style "margin: 20px"
-        (:h1 "Hello, world!")
-        (:p (:form :name "plop"
-                   :method :post
-                   :action "/"
-                   (:input :type :hidden :name "identified" :value identified)
-                   (:p (str (button-in "Pif")) (str (button-in "Plaf")) (str (button-in "Plouf")))
-                   (:p (:input :type :submit :value "Submit"))
-                   (:p "Identifié : " (str identified))
-                   (:p "Select-salle : " (str select-salle))
-                   (:p "Action : " (str action))
-                   (:p "String action : " (str str-action))
-                   (:p "Auth admin : " (str *auth-admin*))
-                   (:p "Auth guest : " (str *auth-guest*))
-                   (:p (:input :type :submit :name "action" :value "Deconnexion")))))))))
 
 
 
@@ -201,15 +190,16 @@
      (selected-file :parameter-type 'list)
      (action :parameter-type 'string)
      (tab-list :parameter-type 'string)
-     (current-tab :parameter-type 'integer))
+     (current-tab :parameter-type 'integer)
+     (data :parameter-type 'string))
   (labels ((handle-auth-admin-request ()
              (remove-in-auth-admin identified)
              (setf identified (add-in-auth-admin login password))
-             (send-identified identified action selected-file tab-list current-tab))
+             (send-main :admin identified action selected-file tab-list current-tab data))
            (handle-auth-guest-request ()
              (remove-in-auth-guest identified)
              (setf identified (add-in-auth-guest login password))
-             (send-identified-guest identified selected-file action)))
+             (send-main :guest identified action selected-file tab-list current-tab data)))
     (cond ((member (list login password) *admin-login-list* :test #'equal)
            (setf identified (add-in-auth-admin login password)
                  tab-list (to-string (list (user-homedir-pathname)))
@@ -217,7 +207,11 @@
                  login "???"
                  password "???"))
           ((member (list login password) *guest-login-list* :test #'equal)
-           (setf identified (add-in-auth-guest login password))))
+           (setf identified (add-in-auth-guest login password)
+                 tab-list (to-string (list (user-homedir-pathname)))
+                 current-tab 0
+                 login "???"
+                 password "???")))
     (cond ((member identified *auth-admin* :test #'string=) (handle-auth-admin-request))
           ((member identified *auth-guest* :test #'string=) (handle-auth-guest-request))
           (t (send-login-page login password identified)))))
@@ -332,3 +326,32 @@ A template can be:
 ;;                   (:p "Auth guest : " (str *auth-guest*))
 ;;                   (:p (str (button-in "Clean auth"))
 ;;                       (:input :type :submit :name "action" :value "Deconnexion")))))))))
+
+
+;;(defun send-identified-guest (identified select-salle action)
+;;  (let ((str-action "???"))
+;;    (when (string= action "Deconnexion")
+;;      (remove-in-auth-guest identified)
+;;      (setf identified "false")
+;;      (return-from send-identified-guest (send-login-page "" "" "false")))
+;;    (with-html-output-to-string (*standard-output* nil :prologue t)
+;;      (:html
+;;       (:head (:title "Hello, world!")
+;;              (:style (str (css-style))))
+;;       (:body
+;;        :style "margin: 20px"
+;;        (:h1 "Hello, world!")
+;;        (:p (:form :name "plop"
+;;                   :method :post
+;;                   :action "/"
+;;                   (:input :type :hidden :name "identified" :value identified)
+;;                   (:p (str (button-in "Pif")) (str (button-in "Plaf")) (str (button-in "Plouf")))
+;;                   (:p (:input :type :submit :value "Submit"))
+;;                   (:p "Identifié : " (str identified))
+;;                   (:p "Select-salle : " (str select-salle))
+;;                   (:p "Action : " (str action))
+;;                   (:p "String action : " (str str-action))
+;;                   (:p "Auth admin : " (str *auth-admin*))
+;;                   (:p "Auth guest : " (str *auth-guest*))
+;;                   (:p (:input :type :submit :name "action" :value "Deconnexion")))))))))
+;;

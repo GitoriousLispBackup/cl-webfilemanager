@@ -7,11 +7,13 @@
 (defpackage :cl-webfilemanager
   (:use :common-lisp :hunchentoot :cl-who :cl-fad)
   (:export :start-server
-           :start-server-loop))
+           :start-server-loop
+           :stop-server))
 
 (in-package :cl-webfilemanager)
 
 (setf *show-lisp-errors-p* t)
+
 (defparameter *port* 4343)
 
 
@@ -28,5 +30,5 @@
 (defparameter *action-list* nil)
 (defparameter *action-guest-list* nil)
 
-(defstruct param identified action selected-file tab-list current-tab additional-html)
+(defstruct param identified action selected-file tab-list current-tab data additional-html)
 
