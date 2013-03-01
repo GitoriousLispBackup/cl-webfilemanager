@@ -99,26 +99,31 @@
        (str (make-dir-button dir selected-file)) "/"))))
 
 
-(defun control-button ()
+(defun control-button-top ()
   (with-html-output-to-string (*standard-output*)
     (:p (:button :name "action" :value (str (to-string `(cd ,(user-homedir-pathname))))
                  "Home") " "
         (:button "New tab") " "
-        (:button "Delete tab")
-        (:br)
-        (:button "Delete") " "
-        (:button :name "action" :value (str (to-string '(ask-make-dir))) "Make dir" )
-        (:br)
-        (:button "Copy to selection") " "
-        (:button "Cut to selection") " "
-        (:button "Copy selection") " "
-        (:button "Paste selection") " "
-        (:br)
-        (:button "Clean history") " "
-        (:button :name "action" :value (str (to-string '(clean-auth)))
-                 "Clean Auth") " "
-        (:button :name "action" :value (str (to-string '(deconnexion)))
-                 "Deconnexion"))))
+        (:button "Delete tab"))))
+
+(defun control-button-bottom ()
+  (with-html-output-to-string (*standard-output*)
+    (:p
+     (:button :name "action" :value (str (to-string '(deselect-all))) "Deselect all") " "
+     (:button :name "action" :value (str (to-string '(select-all))) "Select all") " "
+     (:button :name "action" :value (str (to-string '(ask-make-dir))) "Make directory" ) " "
+     (:button :name "action" :value (str (to-string '(ask-delete-selected))) "Delete selected"))
+    (:p
+     (:button "Copy to selection") " "
+     (:button "Cut to selection") " "
+     (:button "Copy selection") " "
+     (:button "Paste selection"))
+    (:p
+     (:button "Clean history") " "
+     (:button :name "action" :value (str (to-string '(clean-auth))) "Clean Auth")
+     " "
+     (:button :name "action" :value (str (to-string '(deconnexion)))
+              "Deconnexion"))))
 
 
 (defun send-main (type identified action selected-file tab-list current-tab data)
@@ -160,19 +165,19 @@
                          (:input :type :hidden :name "identified" :value identified)
                          (:input :type :hidden :name "tab-list" :value (to-string tab-list))
                          (:input :type :hidden :name "current-tab" :value current-tab)
-                         (str (control-button))
+                         (str (control-button-top))
                          (:hr)
                          (str (build-dir-path tab-pathname selected-file))
                          (:hr)
                          (str (build-dir-list dirs selected-file))
                          (str (build-file-list files selected-file))
                          (:hr)
-                         (str (control-button))
+                         (str (control-button-bottom))
                          (:hr)
                          (:p "Identifié : " (str identified))
                          (:p "Tab list : " (str (to-string tab-list)))
                          (:p "Current tab : " (str current-tab))
-                         (:p "Selected-File : " (str selected-file))
+                         (:p "Selected-File : " (str (to-string selected-file)))
                          (:p "Action : " (str action))
                          (:p "Auth admin : " (str *auth-admin*))
                          (:p "Auth guest : " (str *auth-guest*))

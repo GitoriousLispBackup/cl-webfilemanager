@@ -31,6 +31,20 @@
                    (:button :name "action" :value (str (to-string action)) (str confirm-message))
                    (:input :type :submit :value "Cancel")))))))
 
+(defun ask-yes-or-no (param message action)
+  (setf (param-additional-html param)
+        (with-html-output-to-string (*standard-output*)
+          (:p (:form
+               :action "/"
+               :method :post
+               (:input :type :hidden :name "identified" :value (param-identified param))
+               (:input :type :hidden :name "tab-list" :value (to-string (param-tab-list param)))
+               (:input :type :hidden :name "current-tab" :value (param-current-tab param))
+               (:input :type :hidden :name "selected-file" :value (str (to-string (param-selected-file param))))
+               (:p (str message)
+                   (:button :name "action" :value (str (to-string action)) "Yes")
+                   (:input :type :submit :value "No")))))))
+
 
 (define-action cd (:admin :guest) (pathname)
   (setf (current-tab-pathname param) pathname))
@@ -56,6 +70,33 @@
     (do-shell-output "mkdir -p ~S" (namestring dirname))
     (setf (param-additional-html param)
           (with-html-output-to-string (*standard-output*)
-            (:p "Creating : " (str dirname))))))
+            (:p "Creating: " (str dirname))))))
 
 
+
+(define-action ask-delete-selected (:admin) ()
+  (ask-yes-or-no param
+                 (format nil "Delete:<ul>~{<li>~A</li>~}</ul>" (param-selected-file param))
+                 '(do-delete-selected)))
+
+(define-action do-delete-selected (:admin) ()
+  (let ((files (ignore-errors (read-from-string (first (param-selected-file param))))))
+    (dolist (file files)
+      (do-shell-output "rm -rf ~S" file))
+    (setf (param-additional-html param)
+          (with-html-output-to-string (*standard-output*)
+            (:p (str (format nil "Deleted:<ul>~{<li>~A</li>~}</ul>" files)))))))
+
+
+
+(define-action deselect-all (:admin :guest) ()
+  (setf (param-selected-file param) nil))
+
+(define-action select-all (:admin :guest) ()
+  (multiple-value-bind (dirs files)
+      (get-directory-list (current-tab-pathname param))
+    (setf (param-selected-file param)
+          (let ((acc nil))
+            (dolist (dir dirs) (push (namestring dir) acc))
+            (dolist (file files) (push (namestring file) acc))
+            acc))))
