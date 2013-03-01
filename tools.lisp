@@ -76,7 +76,8 @@
 
 
 (defun is-hidden-file (file)
-  (eql #\. (char (pathname-name file) 0)))
+  (or (not (pathname-name file))
+      (eql #\. (char (pathname-name file) 0))))
 
 (defun is-hidden-directory (dirname)
   (dolist (dir (rest (pathname-directory dirname)))

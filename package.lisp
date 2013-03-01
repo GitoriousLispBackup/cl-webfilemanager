@@ -15,6 +15,8 @@
 (defparameter *port* 4343)
 
 
+(defparameter *server-instance* nil)
+
 (defparameter *auth-admin* ())
 (defparameter *auth-guest* ())
 
