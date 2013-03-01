@@ -20,6 +20,11 @@
 (defparameter *auth-admin* ())
 (defparameter *auth-guest* ())
 
+(defparameter *admin-login-list* nil
+  "A list of login/password pair")
+(defparameter *guest-login-list* nil
+  "A list of login/password pair")
+
 (defparameter *action-list* nil)
 (defparameter *action-guest-list* nil)
 

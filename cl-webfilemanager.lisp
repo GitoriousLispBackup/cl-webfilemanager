@@ -164,94 +164,114 @@
 
 
 
- (defun send-identified-guest (identified select-salle action)
-   (let ((str-action "???"))
-     (when (string= action "Deconnexion")
-       (remove-in-auth-guest identified)
-       (setf identified "false")
-       (return-from send-identified-guest (send-login-page "" "" "false")))
-     (with-html-output-to-string (*standard-output* nil :prologue t)
-       (:html
-        (:head (:title "Hello, world!")
-               (:style (str (css-style))))
-        (:body
-         :style "margin: 20px"
-         (:h1 "Hello, world!")
-         (:p (:form :name "plop"
-                    :method :post
-                    :action "/"
-                    (:input :type :hidden :name "identified" :value identified)
-                    (:p (str (button-in "Pif")) (str (button-in "Plaf")) (str (button-in "Plouf")))
-                    (:p (:input :type :submit :value "Submit"))
-                    (:p "Identifié : " (str identified))
-                    (:p "Select-salle : " (str select-salle))
-                    (:p "Action : " (str action))
-                    (:p "String action : " (str str-action))
-                    (:p "Auth admin : " (str *auth-admin*))
-                    (:p "Auth guest : " (str *auth-guest*))
-                    (:p (:input :type :submit :name "action" :value "Deconnexion")))))))))
+(defun send-identified-guest (identified select-salle action)
+  (let ((str-action "???"))
+    (when (string= action "Deconnexion")
+      (remove-in-auth-guest identified)
+      (setf identified "false")
+      (return-from send-identified-guest (send-login-page "" "" "false")))
+    (with-html-output-to-string (*standard-output* nil :prologue t)
+      (:html
+       (:head (:title "Hello, world!")
+              (:style (str (css-style))))
+       (:body
+        :style "margin: 20px"
+        (:h1 "Hello, world!")
+        (:p (:form :name "plop"
+                   :method :post
+                   :action "/"
+                   (:input :type :hidden :name "identified" :value identified)
+                   (:p (str (button-in "Pif")) (str (button-in "Plaf")) (str (button-in "Plouf")))
+                   (:p (:input :type :submit :value "Submit"))
+                   (:p "Identifié : " (str identified))
+                   (:p "Select-salle : " (str select-salle))
+                   (:p "Action : " (str action))
+                   (:p "String action : " (str str-action))
+                   (:p "Auth admin : " (str *auth-admin*))
+                   (:p "Auth guest : " (str *auth-guest*))
+                   (:p (:input :type :submit :name "action" :value "Deconnexion")))))))))
 
 
 
 
- (define-easy-handler (login-page :uri "/" :default-request-type :post)
-     ((login :parameter-type 'string)
-      (password :parameter-type 'string)
-      (identified :parameter-type 'string)
-      (selected-file :parameter-type 'list)
-      (action :parameter-type 'string)
-      (tab-list :parameter-type 'string)
-      (current-tab :parameter-type 'integer))
-   (labels ((handle-auth-admin-request ()
-              (remove-in-auth-admin identified)
-              (setf identified (add-in-auth-admin login password))
-              (send-identified identified action selected-file tab-list current-tab))
-            (handle-auth-guest-request ()
-              (remove-in-auth-guest identified)
-              (setf identified (add-in-auth-guest login password))
-              (send-identified-guest identified selected-file action)))
-     (when (and (string-equal login "phil") (string-equal password "toto"))
-       (setf identified (add-in-auth-admin login password)
-             tab-list (to-string (list (user-homedir-pathname)))
-             current-tab 0
-             login "???"
-             password "???"))
-     (when (and (string-equal login "toto") (string-equal password "toto"))
-       (setf identified (add-in-auth-guest login password)))
-     (cond ((member identified *auth-admin* :test #'string=) (handle-auth-admin-request))
-           ((member identified *auth-guest* :test #'string=) (handle-auth-guest-request))
-           (t (send-login-page login password identified)))))
+(define-easy-handler (login-page :uri "/" :default-request-type :post)
+    ((login :parameter-type 'string)
+     (password :parameter-type 'string)
+     (identified :parameter-type 'string)
+     (selected-file :parameter-type 'list)
+     (action :parameter-type 'string)
+     (tab-list :parameter-type 'string)
+     (current-tab :parameter-type 'integer))
+  (labels ((handle-auth-admin-request ()
+             (remove-in-auth-admin identified)
+             (setf identified (add-in-auth-admin login password))
+             (send-identified identified action selected-file tab-list current-tab))
+           (handle-auth-guest-request ()
+             (remove-in-auth-guest identified)
+             (setf identified (add-in-auth-guest login password))
+             (send-identified-guest identified selected-file action)))
+    (cond ((member (list login password) *admin-login-list* :test #'equal)
+           (setf identified (add-in-auth-admin login password)
+                 tab-list (to-string (list (user-homedir-pathname)))
+                 current-tab 0
+                 login "???"
+                 password "???"))
+          ((member (list login password) *guest-login-list* :test #'equal)
+           (setf identified (add-in-auth-guest login password))))
+    (cond ((member identified *auth-admin* :test #'string=) (handle-auth-admin-request))
+          ((member identified *auth-guest* :test #'string=) (handle-auth-guest-request))
+          (t (send-login-page login password identified)))))
 
 
- (defun 404-dispatcher (request)
-   (declare (ignore request))
-   '404-page)
+(defun 404-dispatcher (request)
+  (declare (ignore request))
+  '404-page)
 
- (defun 404-page ()
-   ;;"404 is here!")
-   (send-login-page nil nil nil))
-
-
- (setf hunchentoot:*dispatch-table*
-       (list #'dispatch-easy-handlers
-             ;;#'default-dispatcher
-             #'404-dispatcher))
+(defun 404-page ()
+  (send-login-page nil nil nil))
 
 
-
- (defun start-server (&optional (port *port*))
-   (setf *server-instance* (make-instance 'easy-ssl-acceptor :port port
-                                          :ssl-certificate-file "./server.crt"
-                                          :ssl-privatekey-file "./server.key"))
-   (start *server-instance*)
-   (format t "Server started on port ~A with ssl/https~%" *port*))
-
- (defun stop-server ()
-   (stop *server-instance*)
-   (format t "Server stopped~%"))
+(setf hunchentoot:*dispatch-table*
+      (list #'dispatch-easy-handlers
+            ;;#'default-dispatcher
+            #'404-dispatcher))
 
 
-;;(start-server)
+
+
+(defun load-config ()
+  (let ((configname (merge-pathnames (user-homedir-pathname) #P".cl-webfilemanagerrc")))
+    (if (probe-file configname)
+        (load configname)
+        (format t "~A not found. Please, create a configuration file and set the right permission (600).
+A template can be:
+
+  (in-package :cl-webfilemanager)
+
+  (setf *port* 4343)
+
+  (setf *admin-login-list* '((\"your login\" \"your password\")
+                             (\"another login\" \"another password\")))
+  (setf *guest-login-list* '((\"guest login\" \"guest password\")))~%"
+                configname))))
+
+
+(defun start-server ()
+  (load-config)
+  (setf *server-instance* (make-instance 'easy-ssl-acceptor :port *port*
+                                         :ssl-certificate-file "./server.crt"
+                                         :ssl-privatekey-file "./server.key"))
+  (start *server-instance*)
+  (format t "Server started on port ~A with ssl/https~%" *port*))
+
+(defun stop-server ()
+  (stop *server-instance*)
+  (setf *admin-login-list* nil
+        *guest-login-list* nil)
+  (format t "Server stopped~%"))
+
+
+
 
 (defun start-server-loop ()
   (start-server)
