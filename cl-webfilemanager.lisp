@@ -42,9 +42,9 @@
 
 (defun button-in (value)
   (with-html-output-to-string (*standard-output*)
-    (:input :type :submit :name "action" :class "btn" :value value
-            :onmouseover "this.className=\"btn btnhov\";"
-            :onmouseout "this.className=\"btn\";")))
+    (:input :type :submit :name "action" :class "my-button" :value value)))
+            ;;:onmouseover "this.className=\"btn btnhov\";"
+            ;;:onmouseout "this.className=\"btn\";")))
 
 
 (defun make-dir-button (dir selected-file)
@@ -121,9 +121,8 @@
     (:p
      (:button "Clean history") " "
      (:button :name "action" :value (str (to-string '(clean-auth))) "Clean Auth") " "
-     (:button "Halt the system") " "
-     (:button :name "action" :value (str (to-string '(deconnexion)))
-              "Deconnexion"))))
+     (:button :name "action" :value (str (to-string '(system-management))) "System") " "
+     (:button :name "action" :value (str (to-string '(deconnexion))) "Deconnexion"))))
 
 
 (defun tab-bar (tab-list current-tab)
@@ -163,6 +162,7 @@
              (:head (:title "TODO")
                     (:style (str (css-style))))
              (:body
+              ;;(:p (str (button-in "Plop")))
               (:p (:form :method :post
                          :action "/"
                          (:input :type :hidden :name "identified" :value identified)

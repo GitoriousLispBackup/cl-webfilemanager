@@ -91,3 +91,37 @@
             (dolist (dir dirs) (push (namestring dir) acc))
             (dolist (file files) (push (namestring file) acc))
             acc))))
+
+
+
+(define-action system-management (:admin) ()
+  (setf (param-additional-html param)
+        (with-html-output-to-string (*standard-output*)
+          (:p
+           (:button :name "action" :value (str (to-string '(reboot))) "Reboot") " "
+           (:button :name "action" :value (str (to-string '(halt))) "Halt") " "
+           (:button :name "action" :value (str (to-string '(restart-X))) "Restart X"))
+          (:hr))))
+
+
+(define-action reboot (:admin) ()
+  (let ((output (do-shell-output "sudo /sbin/reboot")))
+    (setf (param-additional-html param)
+          (with-html-output-to-string (*standard-output*)
+            (:p (str (format nil "Rebooted. ~A" output)))
+            (:hr)))))
+
+(define-action halt (:admin) ()
+  (let ((output (do-shell-output "sudo /sbin/halt")))
+    (setf (param-additional-html param)
+          (with-html-output-to-string (*standard-output*)
+            (:p (str (format nil "Halted. ~A" output)))
+            (:hr)))))
+
+(define-action restart-X (:admin) ()
+  (let ((output (do-shell-output "sudo /etc/init.d/slim restart")))
+    (setf (param-additional-html param)
+          (with-html-output-to-string (*standard-output*)
+            (:p (str (format nil "Restart X. ~A" output)))
+            (:hr)))))
+
