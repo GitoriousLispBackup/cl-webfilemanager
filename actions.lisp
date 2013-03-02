@@ -20,30 +20,19 @@
 (defun ask-text (param message confirm-message action)
   (setf (param-additional-html param)
         (with-html-output-to-string (*standard-output*)
-          (:p (:form
-               :action "/"
-               :method :post
-               (:input :type :hidden :name "identified" :value (param-identified param))
-               (:input :type :hidden :name "tab-list" :value (to-string (param-tab-list param)))
-               (:input :type :hidden :name "current-tab" :value (param-current-tab param))
-               (:p message
-                   (:input :type :text :name "data")
-                   (:button :name "action" :value (str (to-string action)) (str confirm-message))
-                   (:input :type :submit :value "Cancel")))))))
+          (:p (:p message
+                  (:input :type :text :name "data")
+                  (:button :name "action" :value (str (to-string action)) (str confirm-message))
+                  (:input :type :submit :value "Cancel")))
+          (:hr))))
 
 (defun ask-yes-or-no (param message action)
   (setf (param-additional-html param)
         (with-html-output-to-string (*standard-output*)
-          (:p (:form
-               :action "/"
-               :method :post
-               (:input :type :hidden :name "identified" :value (param-identified param))
-               (:input :type :hidden :name "tab-list" :value (to-string (param-tab-list param)))
-               (:input :type :hidden :name "current-tab" :value (param-current-tab param))
-               (:input :type :hidden :name "selected-file" :value (str (to-string (param-selected-file param))))
-               (:p (str message)
-                   (:button :name "action" :value (str (to-string action)) "Yes")
-                   (:input :type :submit :value "No")))))))
+          (:p (:p (str message)
+                  (:button :name "action" :value (str (to-string action)) "Yes")
+                  (:input :type :submit :value "No")))
+          (:hr))))
 
 
 (define-action cd (:admin :guest) (pathname)
@@ -70,7 +59,8 @@
     (do-shell-output "mkdir -p ~S" (namestring dirname))
     (setf (param-additional-html param)
           (with-html-output-to-string (*standard-output*)
-            (:p "Creating: " (str dirname))))))
+            (:p "Creating: " (str dirname))
+            (:hr)))))
 
 
 
@@ -80,12 +70,13 @@
                  '(do-delete-selected)))
 
 (define-action do-delete-selected (:admin) ()
-  (let ((files (ignore-errors (read-from-string (first (param-selected-file param))))))
+  (let ((files (param-selected-file param)))
     (dolist (file files)
       (do-shell-output "rm -rf ~S" file))
     (setf (param-additional-html param)
           (with-html-output-to-string (*standard-output*)
-            (:p (str (format nil "Deleted:<ul>~{<li>~A</li>~}</ul>" files)))))))
+            (:p (str (format nil "Deleted:<ul>~{<li>~A</li>~}</ul>" files)))
+            (:hr)))))
 
 
 

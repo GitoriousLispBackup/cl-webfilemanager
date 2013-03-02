@@ -104,26 +104,30 @@
     (:p (:button :name "action" :value (str (to-string `(cd ,(user-homedir-pathname))))
                  "Home") " "
         (:button "New tab") " "
-        (:button "Delete tab"))))
+        (:button "Delete tab") " "
+        (:input :type :submit :value "Refresh"))))
 
 (defun control-button-bottom ()
   (with-html-output-to-string (*standard-output*)
     (:p
      (:button :name "action" :value (str (to-string '(deselect-all))) "Deselect all") " "
      (:button :name "action" :value (str (to-string '(select-all))) "Select all") " "
-     (:button :name "action" :value (str (to-string '(ask-make-dir))) "Make directory" ) " "
+     (:button "Filter select"))
+    (:p
+     (:button "Copy to next tab") " "
+     (:button "Move to next tab") " "
+     (:button :name "action" :value (str (to-string '(ask-make-dir))) "Make directory") " "
      (:button :name "action" :value (str (to-string '(ask-delete-selected))) "Delete selected"))
     (:p
-     (:button "Copy to selection") " "
-     (:button "Cut to selection") " "
-     (:button "Copy selection") " "
-     (:button "Paste selection"))
-    (:p
      (:button "Clean history") " "
-     (:button :name "action" :value (str (to-string '(clean-auth))) "Clean Auth")
-     " "
+     (:button :name "action" :value (str (to-string '(clean-auth))) "Clean Auth") " "
+     (:button "Halt the system") " "
      (:button :name "action" :value (str (to-string '(deconnexion)))
               "Deconnexion"))))
+
+
+(defun tab-bar (tab-list current-tab)
+  ())
 
 
 (defun send-main (type identified action selected-file tab-list current-tab data)
@@ -159,29 +163,31 @@
              (:head (:title "TODO")
                     (:style (str (css-style))))
              (:body
-              (:p (str (param-additional-html param)))
               (:p (:form :method :post
                          :action "/"
                          (:input :type :hidden :name "identified" :value identified)
                          (:input :type :hidden :name "tab-list" :value (to-string tab-list))
                          (:input :type :hidden :name "current-tab" :value current-tab)
+                         (:p (str (param-additional-html param)))
                          (str (control-button-top))
+                         (str (tab-bar tab-list current-tab))
                          (:hr)
-                         (str (build-dir-path tab-pathname selected-file))
-                         (:hr)
+                         (:p (str (build-dir-path tab-pathname selected-file)))
+                         ;;(:hr)
                          (str (build-dir-list dirs selected-file))
                          (str (build-file-list files selected-file))
                          (:hr)
                          (str (control-button-bottom))
-                         (:hr)
-                         (:p "Identifié : " (str identified))
-                         (:p "Tab list : " (str (to-string tab-list)))
-                         (:p "Current tab : " (str current-tab))
-                         (:p "Selected-File : " (str (to-string selected-file)))
-                         (:p "Action : " (str action))
-                         (:p "Auth admin : " (str *auth-admin*))
-                         (:p "Auth guest : " (str *auth-guest*))
-                         (:p "Data : " (str data))))))))))))
+                         ;;(:hr)
+                         ;;(:p "Identifié : " (str identified))
+                         ;;(:p "Tab list : " (str (to-string tab-list)))
+                         ;;(:p "Current tab : " (str current-tab))
+                         ;;(:p "Selected-File : " (str (to-string selected-file)))
+                         ;;(:p "Action : " (str action))
+                         ;;(:p "Auth admin : " (str *auth-admin*))
+                         ;;(:p "Auth guest : " (str *auth-guest*))
+                         ;;(:p "Data : " (str data))))))))))))
+                         ))))))))))
 
 
 
@@ -207,7 +213,10 @@
              (send-main :guest identified action selected-file tab-list current-tab data)))
     (cond ((member (list login password) *admin-login-list* :test #'equal)
            (setf identified (add-in-auth-admin login password)
-                 tab-list (to-string (list (user-homedir-pathname)))
+                 tab-list (to-string (list (user-homedir-pathname)
+                                           #P"/"
+                                           #P"/tmp"
+                                           #P"/home/phil/Lisp"))
                  current-tab 0
                  login "???"
                  password "???"))
