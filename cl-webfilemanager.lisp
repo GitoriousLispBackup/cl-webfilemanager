@@ -2,28 +2,36 @@
 
 
 (defun css-style ()
-  "h1 { color: #FF0000; text-align: center; }
-   input.btnblue { color: blue; }
-   input.btn {   background-color:white; font: normal 100% sans-serif;  border:1px solid;
-                 border-color: white white white white; }
-   input.btnhov {   border-color: black black black; }
-
-   button.btnblue { color: blue; }
+  "button.btnblue { color: blue; }
    button.btn {   background-color:white; font: normal 100% sans-serif;  border:1px solid;
                  border-color: white white white white; }
-   button.btnhov {   border-color: black black black; }
+   button.btn:hover {   background-color:#FFFFCC; border-color: black black black black;
+                        border-radius: 30px; }
+
+   button.btn2 {   background-color:#FFE6E6; font: normal 100% sans-serif;  border:1px solid;
+                 border-color: #F0F0F0 #F0F0F0 #F0F0F0 white; }
+   button.btn2:hover {   background-color: white; font: normal 100% sans-serif;  border:1px solid;
+                        border-color: white black white black;
+                        border-radius: 30px; }
 ")
+
+
+(defun button-in (value)
+  (with-html-output-to-string (*standard-output*)
+    (:button :class "btn2" (str value))))
+
 
 
 
 (defun send-login-page (login password identified)
+  (declare (ignore login password))
   (with-html-output-to-string (*standard-output* nil :prologue t)
     (:html
-     (:head (:title "Hello, world!"))
+     (:head (:title "CL Web File Manager"))
      (:body
       :onload "document.getElementById(\"login\").focus();"
       :style "margin: 20px"
-      (:h1 "Hello, world!")
+      (:h1 "CL Web File Manager")
       (:p (:form
            :action "/"
            :method :post
@@ -33,18 +41,13 @@
 	   (:p "Mot de passe : "
 	       (:input :type :password :name "password"))
 	   (:p (:input :type :submit :value "Submit"))))
-      (:p "Login : " (str login))
-      (:p "Mot de passe : " (str password))
-      (:p "Identifié : " (str identified))
-      (:p "Auth admin : " (str *auth-admin*))
-      (:p "Auth guest : " (str *auth-guest*))))))
+;;      (:p "Login : " (str login))
+;;      (:p "Mot de passe : " (str password))
+;;      (:p "Identifié : " (str identified))
+;;      (:p "Auth admin : " (str *auth-admin*))
+      ;;      (:p "Auth guest : " (str *auth-guest*))))))
+      ))))
 
-
-(defun button-in (value)
-  (with-html-output-to-string (*standard-output*)
-    (:input :type :submit :name "action" :class "my-button" :value value)))
-            ;;:onmouseover "this.className=\"btn btnhov\";"
-            ;;:onmouseout "this.className=\"btn\";")))
 
 
 (defun make-dir-button (dir selected-file)
@@ -55,8 +58,6 @@
               :checked (member (namestring dir) selected-file :test #'equal))
       (:button :type :submit :name "action" :class "btnblue btn"
                :value (str (to-string `(cd ,dir)))
-               :onmouseover "this.className=\"btnblue btn btnhov\";"
-               :onmouseout "this.className=\"btnblue btn\";"
                (str dirstr)))))
 
 (defun make-file-button (file selected-file)
@@ -65,13 +66,9 @@
             :checked (member (namestring file) selected-file :test #'equal))
     (:button :type :submit :name "action" :class "btn"
              :value (str (to-string `(options ,file)))
-             :onmouseover "this.className=\"btn btnhov\";"
-             :onmouseout "this.className=\"btn\";"
              "o")
     (:button :type :submit :name "action" :class "btn"
              :value (str (to-string `(open ,file)))
-             :onmouseover "this.className=\"btn btnhov\";"
-             :onmouseout "this.className=\"btn\";"
              (str (pathname-name-type file)))))
 
 (defun generic-build-list (list fun-button selected-file)
@@ -162,7 +159,6 @@
              (:head (:title "TODO")
                     (:style (str (css-style))))
              (:body
-              ;;(:p (str (button-in "Plop")))
               (:p (:form :method :post
                          :action "/"
                          (:input :type :hidden :name "identified" :value identified)
@@ -284,88 +280,3 @@ A template can be:
 (defun start-server-loop ()
   (start-server)
   (loop (sleep 10)))
-
-
-
-
-
-
-;;(defun send-identified-test (identified selected-file action)
-;;  (let ((str-action "???"))
-;;    (when (string= action "Deconnexion")
-;;      (remove-in-auth-admin identified)
-;;      (setf identified "false")
-;;      (return-from send-identified-test (send-login-page "" "" "false")))
-;;    (when (string= action "Lance")
-;;      (setf str-action "--> Lance"))
-;;    (when (string= action "Plop")
-;;      (setf str-action "--> Plop plop"))
-;;    (when (string= action "Clean auth")
-;;      (setf *auth-admin* nil
-;;            *auth-guest* nil)
-;;      (setf str-action "Clean auth"))
-;;    (with-html-output-to-string (*standard-output* nil :prologue t)
-;;      (:html
-;;       (:head (:title "Hello, world!")
-;;              (:style (str (css-style))))
-;;       (:body
-;;        :style "margin: 20px"
-;;        (:h1 "Hello, world!")
-;;        ;;(:p (:a :href "/" "Deconnexion"))
-;;        (:p (:form :name "plop"
-;;                   :method :post
-;;                   :action "/"
-;;                   (:input :type :hidden :name "identified" :value identified)
-;;                   ;;(:input :type :checkbox :name "select-salle" :value "1"
-;;                   ;;        :checked (member "1" select-salle :test 'string=)
-;;                   ;;        "Salle 1")
-;;                   ;;(:input :type :checkbox :name "select-salle" :value "2"
-;;                   ;;        :checked (member "2" select-salle :test 'string=)
-;;                   ;;        "Salle 2")
-;;                   ;;(:input :type :checkbox :name "select-salle" :value "3"
-;;                   ;;        :checked (member "3" select-salle :test 'string=)
-;;                   ;;        "Salle 3")
-;;                   (:p (:input :type :submit :name "action" :class "btn" :value "Lance") "&nbsp;"
-;;                       (:input :type :submit :name "action" :class "btn2" :value "Plop") "&nbsp;"
-;;                       (:input :type :submit :name "action" :class "btn2" :value "Paf"
-;;                               :onmouseover "this.className=\"btn2 btnhov\";"
-;;                               :onmouseout "this.className=\"btn2\";"))
-;;                   (:p (str (button-in "Pif")) (str (button-in "Plaf")) (str (button-in "Plouf")))
-;;                   (:p (:input :type :submit :value "Submit"))
-;;                   (:p "Identifié : " (str identified))
-;;                   ;;(:p "Select-salle : " (str select-salle))
-;;                   (:p "Action : " (str action))
-;;                   (:p "String action : " (str str-action))
-;;                   (:p "Auth admin : " (str *auth-admin*))
-;;                   (:p "Auth guest : " (str *auth-guest*))
-;;                   (:p (str (button-in "Clean auth"))
-;;                       (:input :type :submit :name "action" :value "Deconnexion")))))))))
-
-
-;;(defun send-identified-guest (identified select-salle action)
-;;  (let ((str-action "???"))
-;;    (when (string= action "Deconnexion")
-;;      (remove-in-auth-guest identified)
-;;      (setf identified "false")
-;;      (return-from send-identified-guest (send-login-page "" "" "false")))
-;;    (with-html-output-to-string (*standard-output* nil :prologue t)
-;;      (:html
-;;       (:head (:title "Hello, world!")
-;;              (:style (str (css-style))))
-;;       (:body
-;;        :style "margin: 20px"
-;;        (:h1 "Hello, world!")
-;;        (:p (:form :name "plop"
-;;                   :method :post
-;;                   :action "/"
-;;                   (:input :type :hidden :name "identified" :value identified)
-;;                   (:p (str (button-in "Pif")) (str (button-in "Plaf")) (str (button-in "Plouf")))
-;;                   (:p (:input :type :submit :value "Submit"))
-;;                   (:p "Identifié : " (str identified))
-;;                   (:p "Select-salle : " (str select-salle))
-;;                   (:p "Action : " (str action))
-;;                   (:p "String action : " (str str-action))
-;;                   (:p "Auth admin : " (str *auth-admin*))
-;;                   (:p "Auth guest : " (str *auth-guest*))
-;;                   (:p (:input :type :submit :name "action" :value "Deconnexion")))))))))
-;;
