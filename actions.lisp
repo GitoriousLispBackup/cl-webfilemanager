@@ -20,19 +20,29 @@
 (defun ask-text (param message confirm-message action)
   (setf (param-additional-html param)
         (with-html-output-to-string (*standard-output*)
-          (:p (:p message
-                  (:input :type :text :name "data")
-                  (:button :name "action" :value (str (to-string action)) (str confirm-message))
-                  (:input :type :submit :value "Cancel")))
-          (:hr))))
+          (:div :class "topbar"
+                (str message)
+                (:input :type :text :name "data")
+                (:button :name "action" :value (str (to-string action)) (str confirm-message))
+                (:input :type :submit :value "Cancel")))))
 
-(defun ask-yes-or-no (param message action)
+(defun info-text (param formatter &rest args)
   (setf (param-additional-html param)
         (with-html-output-to-string (*standard-output*)
-          (:p (:p (str message)
-                  (:button :name "action" :value (str (to-string action)) "Yes")
-                  (:input :type :submit :value "No")))
-          (:hr))))
+          (:div :class "topbar"
+                (str (apply #'format nil formatter args))))))
+
+
+
+
+(defun ask-yes-or-no (param action formatter &rest args)
+  (setf (param-additional-html param)
+        (with-html-output-to-string (*standard-output*)
+          (:div :class "topbar"
+                (str (apply #'format nil formatter args))
+                (:button :name "action" :value (str (to-string action)) "Yes")
+                (:input :type :submit :value "No")))))
+
 
 
 (define-action cd (:admin :guest) (pathname)
@@ -48,7 +58,8 @@
 (define-action options (:admin :guest) (pathname)
   (setf (param-additional-html param)
         (with-html-output-to-string (*standard-output*)
-          (:button (str (format nil "plop ~A plop" pathname))))))
+          (:div :class "topbar"
+                (:button (str (format nil "plop ~A plop" pathname)))))))
 
 (define-action ask-make-dir (:admin) ()
   (ask-text param "Create a new directory: " "Create" '(do-make-dir)))
@@ -57,26 +68,20 @@
   (let ((dirname (pathname-as-directory
                   (format nil "~A~A" (current-tab-pathname param) (param-data param)))))
     (do-shell-output "mkdir -p ~S" (namestring dirname))
-    (setf (param-additional-html param)
-          (with-html-output-to-string (*standard-output*)
-            (:p "Creating: " (str dirname))
-            (:hr)))))
+    (info-text param "Creating: ~A" dirname)))
 
 
 
 (define-action ask-delete-selected (:admin) ()
-  (ask-yes-or-no param
-                 (format nil "Delete:<ul>~{<li>~A</li>~}</ul>" (param-selected-file param))
-                 '(do-delete-selected)))
+  (ask-yes-or-no param '(do-delete-selected)
+                 "Delete:<ul>~{<li>~A</li>~}</ul>" (param-selected-file param)))
 
 (define-action do-delete-selected (:admin) ()
   (let ((files (param-selected-file param)))
     (dolist (file files)
       (do-shell-output "rm -rf ~S" file))
     (setf (param-additional-html param)
-          (with-html-output-to-string (*standard-output*)
-            (:p (str (format nil "Deleted:<ul>~{<li>~A</li>~}</ul>" files)))
-            (:hr)))))
+          (info-text param "Deleted:<ul>~{<li>~A</li>~}</ul>" files))))
 
 
 
@@ -125,31 +130,32 @@
 (define-action system-management (:admin) ()
   (setf (param-additional-html param)
         (with-html-output-to-string (*standard-output*)
-          (:p
-           (:button :name "action" :value (str (to-string '(reboot))) "Reboot") " "
-           (:button :name "action" :value (str (to-string '(halt))) "Halt") " "
-           (:button :name "action" :value (str (to-string '(restart-X))) "Restart X"))
-          (:hr))))
+          (:div :class "topbar"
+                (:button :name "action" :value (str (to-string '(reboot))) "Reboot") " "
+                (:button :name "action" :value (str (to-string '(halt))) "Halt") " "
+                (:button :name "action" :value (str (to-string '(restart-X))) "Restart X")))))
+
 
 
 (define-action reboot (:admin) ()
   (let ((output (do-shell-output "sudo /sbin/reboot")))
     (setf (param-additional-html param)
           (with-html-output-to-string (*standard-output*)
-            (:p (str (format nil "Rebooted. ~A" output)))
-            (:hr)))))
+            (:div :class "topbar"
+                  (str (format nil "Rebooted. ~A" output)))))))
 
 (define-action halt (:admin) ()
   (let ((output (do-shell-output "sudo /sbin/halt")))
     (setf (param-additional-html param)
           (with-html-output-to-string (*standard-output*)
-            (:p (str (format nil "Halted. ~A" output)))
-            (:hr)))))
+            (:div :class "topbar"
+                  (str (format nil "Halted. ~A" output)))))))
 
 (define-action restart-X (:admin) ()
   (let ((output (do-shell-output "sudo /etc/init.d/slim restart")))
     (setf (param-additional-html param)
           (with-html-output-to-string (*standard-output*)
-            (:p (str (format nil "Restart X. ~A" output)))
-            (:hr)))))
+            (:div :class "topbar"
+                  (str (format nil "Restart X. ~A" output)))))))
+
 

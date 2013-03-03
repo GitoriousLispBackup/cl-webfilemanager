@@ -31,10 +31,13 @@
    div.tabbar { margin-left: 20px; }
 
    div.tab { border:1px solid; border-color: black;margin-top:-1px;
-             padding-left: 10px; padding-right: 10px; border-radius: 10px; }
+             padding-left: 10px; padding-right: 10px; border-radius: 10px;
+             overflow-x: auto; white-space: nowrap; }
 
-   div.addressline { border:1px solid; border-color: white white black  white ;
-   }
+   div.addressline { border:1px solid; border-color: white white black  white ; }
+
+   div.topbar { background-color: #EEEEEE; border:1px solid; border-color: black;
+                padding: 10px; border-radius: 10px; }
 ")
 
 
@@ -135,8 +138,8 @@
      (:button :name "action" :value (str (to-string '(select-all))) "Select all") " "
      (:button "Filter select"))
     (:p
-     (:button "Copy to next tab") " "
-     (:button "Move to next tab") " "
+     (:button "Copy") " "
+     (:button "Move") " "
      (:button :name "action" :value (str (to-string '(ask-make-dir))) "Make directory") " "
      (:button :name "action" :value (str (to-string '(ask-delete-selected))) "Delete selected"))
     (:p
