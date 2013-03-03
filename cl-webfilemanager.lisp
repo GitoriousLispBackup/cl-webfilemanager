@@ -3,47 +3,50 @@
 
 (defun css-style ()
   "button.btnblue { color: blue; }
-   button.btn {   background-color:white; font: normal 100% sans-serif;  border:1px solid;
-                 border-color: white white white white; }
-   button.btn:hover {   background-color:#FFFFCC; border-color: black black black black;
+   button.btn {   background-color:#F8F8F8; font: normal 100% sans-serif;  border:1px solid;
+                 border-color: #F8F8F8; }
+   button.btn:hover {   background-color:#FFFFCC; border-color: black;
                         border-radius: 30px; }
 
-   button.btn2 {   background-color:#FFE6E6; font: normal 100% sans-serif;  border:1px solid;
-                 border-color: #F0F0F0 #F0F0F0 #F0F0F0 white; }
-   button.btn2:hover {   background-color: white; font: normal 100% sans-serif;  border:1px solid;
-                        border-color: white black white black;
-                        border-radius: 30px; }
-
-   button.btntab { background-color:#e6e6e6;  font: normal 100% sans-serif;  border:1px solid;
+   button.btntab { background-color:#D0D0D0;  font: normal 100% sans-serif;  border:1px solid;
                    border-color: black black black black;
                    margin-right: -1px; margin-bottom: 0px;
                    border-top-left-radius: 8px;
                    border-top-right-radius: 8px; }
    button.btntab:hover { background-color:#FFFFCC; }
 
-   button.btntabsel { background-color:white;  font: normal 100% sans-serif;  border:1px solid;
-                   border-color: black black white black;
+   button.btntabctrl { color: black;background-color:white;  font: normal 100% sans-serif;  border:1px solid;
+                   border-color: black black black black;
+                   margin-right: -1px; margin-bottom: 0px;
+                   border-top-left-radius: 8px;
+                   border-top-right-radius: 8px; }
+   button.btntabctrl:hover { background-color:#FFFFCC; }
+
+
+   button.btntabsel { background-color: #F8F8F8;  font: normal 100% sans-serif;  border:1px solid;
+                   border-color: black black #F8F8F8 black;
                    margin-right: -1px; margin-bottom: 0px;
                    border-top-left-radius: 8px;
                    border-top-right-radius: 8px; }
    button.btntabsel:hover { background-color:#ffffdd; }
 
-   div.tabbar { margin-left: 20px; }
+   div.tabbar { margin-left: 20px; white-space: nowrap; }
 
    div.tab { border:1px solid; border-color: black;margin-top:-1px;
              padding-left: 10px; padding-right: 10px; border-radius: 10px;
-             overflow-x: auto; white-space: nowrap; }
+             overflow-x: hidden; white-space: nowrap;
+             background-color: #F8F8F8; }
 
-   div.addressline { border:1px solid; border-color: white white black  white ; }
+   div.addressline { border:1px solid; border-color: #F8F8F8 #F8F8F8 black #F8F8F8 ; }
 
    div.topbar { background-color: #EEEEEE; border:1px solid; border-color: black;
                 padding: 10px; border-radius: 10px; }
 ")
 
 
-(defun button-in (value)
-  (with-html-output-to-string (*standard-output*)
-    (:button :class "btn2" (str value))))
+;;(defun button-in (value)
+;;  (with-html-output-to-string (*standard-output*)
+;;    (:button :class "btn2" (str value))))
 
 
 
@@ -122,15 +125,6 @@
              (str (make-dir-button dir selected-file)) "/")))))
 
 
-(defun control-button-top ()
-  (with-html-output-to-string (*standard-output*)
-    (:p (:button :name "action" :value (str (to-string `(cd ,(user-homedir-pathname)))) "Home")
-        " "
-        (:button :name "action" :value (str (to-string '(add-new-tab))) "New tab") " "
-        (:button :name "action" :value (str (to-string '(clone-tab))) "Clone tab") " "
-        (:button :name "action" :value (str (to-string '(delete-tab))) "Delete tab") " "
-        (:input :type :submit :value "Refresh"))))
-
 (defun control-button-bottom ()
   (with-html-output-to-string (*standard-output*)
     (:p
@@ -156,7 +150,20 @@
             (htm (:button :class (if (= i current-tab) "btntabsel" "btntab")
                           :name "action"
                           :value (str (to-string `(select-tab ,i)))
-                          (str (last-directory-path (nth i tab-list)))))))))
+                          (str (last-directory-path (nth i tab-list))))))
+          " "
+          (:button :class "btntabctrl" :name "action"
+                   :value (str (to-string  `(cd ,(user-homedir-pathname))))
+                   "H")
+          (:button :class "btntabctrl" :name "action"
+                   :value (str (to-string  '(add-new-tab)))
+                   "+")
+          (:button :class "btntabctrl" :name "action"
+                   :value (str (to-string  '(clone-tab)))
+                   "=") " "
+          (:button :class "btntabctrl" :name "action"
+                   :value (str (to-string  '(delete-tab)))
+                   "x"))))
 
 
 (defun send-main (type identified action selected-file tab-list current-tab data)
@@ -198,7 +205,6 @@
                          (:input :type :hidden :name "tab-list" :value (to-string tab-list))
                          (:input :type :hidden :name "current-tab" :value current-tab)
                          (:p (str (param-additional-html param)))
-                         (str (control-button-top))
                          (str (tab-bar tab-list current-tab))
                          (:div :class "tab"
                                (:p (str (build-dir-path tab-pathname selected-file)))
