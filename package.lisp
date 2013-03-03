@@ -30,5 +30,8 @@
 (defparameter *action-list* nil)
 (defparameter *action-guest-list* nil)
 
+(defparameter *permanent-html* nil)
+(defparameter *permanent-html-id* 0)
+
 (defstruct param identified action selected-file tab-list current-tab data additional-html)
 

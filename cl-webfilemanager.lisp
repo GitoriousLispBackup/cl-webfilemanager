@@ -4,7 +4,7 @@
 (defun css-style ()
   "button.btnblue { color: blue; }
    button.btn {   background-color:#F8F8F8; font: normal 100% sans-serif;  border:1px solid;
-                 border-color: #F8F8F8; }
+                 border-color: #F8F8F8; border-radius: 30px; }
    button.btn:hover {   background-color:#FFFFCC; border-color: black;
                         border-radius: 30px; }
 
@@ -40,7 +40,8 @@
    div.addressline { border:1px solid; border-color: #F8F8F8 #F8F8F8 black #F8F8F8 ; }
 
    div.topbar { background-color: #EEEEEE; border:1px solid; border-color: black;
-                padding: 10px; border-radius: 10px; }
+                padding: 10px; margin-bottom: 8px;
+                border-radius: 10px; }
 ")
 
 
@@ -96,7 +97,7 @@
              :value (str (to-string `(options ,file)))
              "o")
     (:button :type :submit :name "action" :class "btn"
-             :value (str (to-string `(open ,file)))
+             :value (str (to-string `(file-open ,file)))
              (str (pathname-name-type file)))))
 
 (defun generic-build-list (list fun-button selected-file)
@@ -132,6 +133,7 @@
      (:button :name "action" :value (str (to-string '(select-all))) "Select all") " "
      (:button "Filter select"))
     (:p
+     (:button :name "action" :value (str (to-string '(open-selected))) "Open") " "
      (:button "Copy") " "
      (:button "Move") " "
      (:button :name "action" :value (str (to-string '(ask-make-dir))) "Make directory") " "
@@ -204,14 +206,16 @@
                          (:input :type :hidden :name "identified" :value identified)
                          (:input :type :hidden :name "tab-list" :value (to-string tab-list))
                          (:input :type :hidden :name "current-tab" :value current-tab)
-                         (:p (str (param-additional-html param)))
+                         (str (param-additional-html param))
+                         (dolist (elem *permanent-html*)
+                           (str (second elem)))
                          (str (tab-bar tab-list current-tab))
                          (:div :class "tab"
                                (:p (str (build-dir-path tab-pathname selected-file)))
                                (str (build-dir-list dirs selected-file))
                                (str (build-file-list files selected-file)))
                          (str (control-button-bottom))
-                         ;;(:hr)
+                         ;;;;(:hr)
                          ;;(:p "Identifié : " (str identified))
                          ;;(:p "Tab list : " (str (to-string tab-list)))
                          ;;(:p "Current tab : " (str current-tab))
@@ -219,7 +223,7 @@
                          ;;(:p "Action : " (str action))
                          ;;(:p "Auth admin : " (str *auth-admin*))
                          ;;(:p "Auth guest : " (str *auth-guest*))
-                         ;;(:p "Data : " (str data))))))))))))
+                         ;;(:p "Data : " (str data))
                          ))))))))))
 
 

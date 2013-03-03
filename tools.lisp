@@ -207,3 +207,6 @@ of the program to return.
   #-(or allegro clisp cmu gcl lispworks lucid sbcl scl ecl ccl)
   (error 'not-implemented :proc (list '(setf getenv) var)))
 
+
+(defun file-type (pathname)
+  (first (do-shell-output "file ~A" pathname)))

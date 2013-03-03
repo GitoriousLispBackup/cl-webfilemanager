@@ -159,3 +159,55 @@
                   (str (format nil "Restart X. ~A" output)))))))
 
 
+(defparameter *open-actions*
+  '(("mpeg" "vlc")
+    ("jpeg" open-qiv)
+    ("fig image" "xfig")))
+
+
+(defun open-qiv (file)
+  (let ((id :qiv))
+    (push (list id
+                (with-html-output-to-string (*standard-output*)
+                  (:div :class "topbar"
+                        (:button :name "action" :class "btn"
+                                 :value (str (to-string `(close-qiv ,file ,id)))
+                                 (str (format nil "Close ~A" file))))))
+          *permanent-html*)
+    (fdo-shell "pkill qiv && qiv -t -m ~A" file)))
+
+(define-action close-qiv (:admin :guest) (file id)
+  (declare (ignore file))
+  (fdo-shell "pkill qiv")
+  (setf *permanent-html* (remove-if (lambda (x) (eql id (first x))) *permanent-html*)))
+
+
+
+
+(defun find-open-action (file)
+  (let ((type (file-type file)))
+    (dolist (action *open-actions*)
+      (when (search (first action) type :test #'string-equal)
+        (return-from find-open-action (values (second action) t))))
+    (values (format nil "Not found: ~A" type) nil)))
+
+(defun do-open-file (param file)
+  (multiple-value-bind (action found)
+      (find-open-action file)
+    (if found
+        (typecase action
+          ((or function symbol) (funcall action (namestring file)))
+          (t (fdo-shell "~A ~S &" action (namestring file))
+             (info-text param "Openning: ~A with ~A" file action)))
+        (info-text param "Action not found: ~A<br>File type: ~A"
+                   file (file-type file)))))
+
+
+
+
+(define-action file-open (:admin :guest) (file)
+  (do-open-file param file))
+
+(define-action open-selected (:admin :guest) ()
+  (dolist (file (param-selected-file param))
+    (file-open param file)))
