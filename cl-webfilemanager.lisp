@@ -13,6 +13,28 @@
    button.btn2:hover {   background-color: white; font: normal 100% sans-serif;  border:1px solid;
                         border-color: white black white black;
                         border-radius: 30px; }
+
+   button.btntab { background-color:#e6e6e6;  font: normal 100% sans-serif;  border:1px solid;
+                   border-color: black black black black;
+                   margin-right: -1px; margin-bottom: 0px;
+                   border-top-left-radius: 8px;
+                   border-top-right-radius: 8px; }
+   button.btntab:hover { background-color:#FFFFCC; }
+
+   button.btntabsel { background-color:white;  font: normal 100% sans-serif;  border:1px solid;
+                   border-color: black black white black;
+                   margin-right: -1px; margin-bottom: 0px;
+                   border-top-left-radius: 8px;
+                   border-top-right-radius: 8px; }
+   button.btntabsel:hover { background-color:#ffffdd; }
+
+   div.tabbar { margin-left: 20px; }
+
+   div.tab { border:1px solid; border-color: black;margin-top:-1px;
+             padding-left: 10px; padding-right: 10px; border-radius: 10px; }
+
+   div.addressline { border:1px solid; border-color: white white black  white ;
+   }
 ")
 
 
@@ -90,18 +112,20 @@
 
 (defun build-dir-path (tab-pathname selected-file)
   (with-html-output-to-string (*standard-output*)
-    "/"
-    (dolist (dir (extract-all-pathname tab-pathname))
-      (htm
-       (str (make-dir-button dir selected-file)) "/"))))
+    (:div :class "addressline"
+          "/"
+          (dolist (dir (extract-all-pathname tab-pathname))
+            (htm
+             (str (make-dir-button dir selected-file)) "/")))))
 
 
 (defun control-button-top ()
   (with-html-output-to-string (*standard-output*)
-    (:p (:button :name "action" :value (str (to-string `(cd ,(user-homedir-pathname))))
-                 "Home") " "
-        (:button "New tab") " "
-        (:button "Delete tab") " "
+    (:p (:button :name "action" :value (str (to-string `(cd ,(user-homedir-pathname)))) "Home")
+        " "
+        (:button :name "action" :value (str (to-string '(add-new-tab))) "New tab") " "
+        (:button :name "action" :value (str (to-string '(clone-tab))) "Clone tab") " "
+        (:button :name "action" :value (str (to-string '(delete-tab))) "Delete tab") " "
         (:input :type :submit :value "Refresh"))))
 
 (defun control-button-bottom ()
@@ -123,7 +147,13 @@
 
 
 (defun tab-bar (tab-list current-tab)
-  ())
+  (with-html-output-to-string (*standard-output*)
+    (:div :class "tabbar"
+          (dotimes (i (length tab-list))
+            (htm (:button :class (if (= i current-tab) "btntabsel" "btntab")
+                          :name "action"
+                          :value (str (to-string `(select-tab ,i)))
+                          (str (last-directory-path (nth i tab-list)))))))))
 
 
 (defun send-main (type identified action selected-file tab-list current-tab data)
@@ -156,7 +186,7 @@
             (get-directory-list tab-pathname) ;; TODO showhidden
           (with-html-output-to-string (*standard-output* nil :prologue t)
             (:html
-             (:head (:title "TODO")
+             (:head (:title (str (format nil "Dir: ~A" (last-directory-path tab-pathname))))
                     (:style (str (css-style))))
              (:body
               (:p (:form :method :post
@@ -167,12 +197,10 @@
                          (:p (str (param-additional-html param)))
                          (str (control-button-top))
                          (str (tab-bar tab-list current-tab))
-                         (:hr)
-                         (:p (str (build-dir-path tab-pathname selected-file)))
-                         ;;(:hr)
-                         (str (build-dir-list dirs selected-file))
-                         (str (build-file-list files selected-file))
-                         (:hr)
+                         (:div :class "tab"
+                               (:p (str (build-dir-path tab-pathname selected-file)))
+                               (str (build-dir-list dirs selected-file))
+                               (str (build-file-list files selected-file)))
                          (str (control-button-bottom))
                          ;;(:hr)
                          ;;(:p "Identifié : " (str identified))
@@ -209,10 +237,7 @@
              (send-main :guest identified action selected-file tab-list current-tab data)))
     (cond ((member (list login password) *admin-login-list* :test #'equal)
            (setf identified (add-in-auth-admin login password)
-                 tab-list (to-string (list (user-homedir-pathname)
-                                           #P"/"
-                                           #P"/tmp"
-                                           #P"/home/phil/Lisp"))
+                 tab-list (to-string (list (user-homedir-pathname)))
                  current-tab 0
                  login "???"
                  password "???"))

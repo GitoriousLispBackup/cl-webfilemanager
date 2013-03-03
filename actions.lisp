@@ -93,6 +93,34 @@
             acc))))
 
 
+(define-action select-tab (:admin :guest) (tab-num)
+  (setf (param-current-tab param) tab-num))
+
+
+
+(defun create-new-tab (param directory)
+  (setf (param-tab-list param) (append (param-tab-list param)
+                                       (list directory)))
+  (setf (param-current-tab param) (1- (length (param-tab-list param)))))
+
+
+(define-action add-new-tab (:admin :guest) ()
+  (create-new-tab param (user-homedir-pathname)))
+
+(define-action clone-tab (:admin :guest) ()
+  (create-new-tab param (current-tab-pathname param)))
+
+(define-action delete-tab (:admin :guest) ()
+  (when (> (length (param-tab-list param)) 1)
+    (let ((acc nil))
+      (dotimes (i (length (param-tab-list param)))
+        (unless (= i (param-current-tab param))
+          (push (nth i (param-tab-list param)) acc)))
+      (setf (param-tab-list param) (nreverse acc))
+      (setf (param-current-tab param) (max (1- (param-current-tab param)) 0)))))
+
+
+
 
 (define-action system-management (:admin) ()
   (setf (param-additional-html param)

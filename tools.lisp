@@ -9,6 +9,11 @@
      while j))
 
 
+(declaim (inline elast))
+(defun elast (list)
+  "Return the last element in list"
+  (first (last list)))
+
 (defun group-by (list n)
   (let ((acc nil) (subacc nil) (i 0))
     (dolist (l list)
@@ -44,11 +49,16 @@
               "")))
 
 (defun extract-all-pathname (pathname)
-  (let ((dir (pathname-directory pathname))
+  (let ((dir (pathname-directory (pathname-as-directory pathname)))
         (acc nil))
     (dotimes (i (length dir))
       (push (directory-to-pathname (subseq dir 0 (1+ i))) acc))
     (nreverse acc)))
+
+
+(defun last-directory-path (pathname)
+  (let ((dir (elast (pathname-directory (pathname-as-directory pathname)))))
+    (if (eql dir :absolute) "Root" dir)))
 
 
 
@@ -103,9 +113,6 @@
 
 (defun to-string (list)
   (format nil "~S" list))
-
-
-
 
 
 ;;; Shell part (taken from ltk)
