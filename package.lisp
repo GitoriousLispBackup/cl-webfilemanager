@@ -5,7 +5,7 @@
 ;;   (push file/pathname (gethash pathname-orig))
 
 (defpackage :cl-webfilemanager
-  (:use :common-lisp :hunchentoot :cl-who :cl-fad)
+  (:use :common-lisp :hunchentoot :cl-who :cl-fad :parenscript)
   (:export :start-server
            :start-server-loop
            :stop-server))

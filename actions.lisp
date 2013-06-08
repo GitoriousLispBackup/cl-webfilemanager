@@ -162,7 +162,8 @@
 (defparameter *open-actions*
   '(("mpeg" "vlc")
     ("jpeg" open-qiv)
-    ("fig image" "xfig")))
+    ("fig image" "xfig")
+    ("text" "emacs -q")))
 
 
 (defun open-qiv (file)

@@ -16,6 +16,8 @@
                (:file "actions"
                       :depends-on ("package"))
                (:file "cl-webfilemanager"
+                      :depends-on ("package" "tools"))
+               (:file "xbmc"
                       :depends-on ("package" "tools"))))
 
 

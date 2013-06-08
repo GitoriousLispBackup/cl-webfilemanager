@@ -102,7 +102,7 @@
 (defun get-directory-list (dirname &optional show-hidden)
   (let ((acc-file nil)
         (acc-dir nil))
-    (dolist (item (list-directory dirname :follow-symlinks nil))
+    (dolist (item (list-directory dirname :follow-symlinks t))
       (if (directory-pathname-p item)
           (when (or show-hidden (not (is-hidden-directory item)))
             (push item acc-dir))

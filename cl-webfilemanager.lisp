@@ -100,6 +100,8 @@
              :value (str (to-string `(file-open ,file)))
              (str (pathname-name-type file)))))
 
+
+
 (defun generic-build-list (list fun-button selected-file)
   (with-html-output-to-string (*standard-output*)
     (dolist (item list)
@@ -265,6 +267,8 @@
           (t (send-login-page login password identified)))))
 
 
+
+
 (defun 404-dispatcher (request)
   (declare (ignore request))
   '404-page)
@@ -274,7 +278,8 @@
 
 
 (setf hunchentoot:*dispatch-table*
-      (list #'dispatch-easy-handlers
+      (list (create-folder-dispatcher-and-handler "/pics/" "pics/")
+            #'dispatch-easy-handlers
             ;;#'default-dispatcher
             #'404-dispatcher))
 
